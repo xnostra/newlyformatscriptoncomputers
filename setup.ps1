@@ -198,13 +198,13 @@ function Write-Log {
 
 Write-Log "Post-update fixup script started"
 
-# STEP 1: Apply WinUtil "Standard" preset
+# STEP 1: Apply WinUtil "Standard" preset (Chris Titus Tech)
 try {
     Write-Log "Applying WinUtil Standard preset..."
-    & ([ScriptBlock]::Create((irm "https://christitus.com/win"))) -Preset Standard
+    & ([ScriptBlock]::Create((Invoke-RestMethod -Uri "https://christitus.com/win" -UseBasicParsing))) -Preset Standard
     Write-Log "WinUtil preset applied successfully" "Success"
 } catch {
-    Write-Log "WinUtil preset failed: $_" "Error"
+    Write-Log "WinUtil preset could not be applied: $_" "Warning"
 }
 
 # STEP 2: Reinstall useful apps that debloat removes
