@@ -27,69 +27,24 @@ Write-Host "Step 1: Chris Titus WinUtil Standard Preset" -ForegroundColor Yellow
 Write-Host "(System debloating and optimization)" -ForegroundColor Gray
 Write-Host ""
 
-try {
-    Write-Host "Downloading WinUtil from https://christitus.com/win..." -ForegroundColor Cyan
-    $winutilScript = Invoke-RestMethod -Uri "https://christitus.com/win" -UseBasicParsing -ErrorAction Stop
+Write-Host "Launching WinUtil in a fresh PowerShell window..." -ForegroundColor Cyan
+Write-Host "(Complete/close the WinUtil window, then setup will continue)" -ForegroundColor Gray
+Write-Host ""
 
-    if ([string]::IsNullOrEmpty($winutilScript)) {
-        throw "WinUtil script is empty"
-    }
+# Run the EXACT command that works when run manually, but in a fresh top-level
+# process. This avoids the null-reference error caused by nesting WinUtil inside
+# our own iex pipeline.
+$winutilCommand = '& ([ScriptBlock]::Create((irm https://christitus.com/win))) -Preset Standard'
 
-    # Build a config JSON matching the Standard preset
-    $winutilConfig = @{
-        WPFTweaks = @(
-            "WPFTweaksActivity",
-            "WPFTweaksConsumerFeatures",
-            "WPFTweaksDisableExplorerAutoDiscovery",
-            "WPFTweaksWPBT",
-            "WPFTweaksLocation",
-            "WPFTweaksServices",
-            "WPFTweaksTelemetry",
-            "WPFTweaksDeliveryOptimization",
-            "WPFTweaksDiskCleanup",
-            "WPFTweaksDeleteTempFiles",
-            "WPFTweaksEndTaskOnTaskbar",
-            "WPFTweaksRestorePoint"
-        )
-    }
+$proc = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-Command", $winutilCommand
+)
 
-    $configPath = Join-Path $env:TEMP "winutil-standard-config.json"
-    $winutilConfig | ConvertTo-Json -Depth 5 | Out-File -FilePath $configPath -Encoding UTF8 -Force
-
-    # Save WinUtil script to a temp file so it runs at true top-level scope
-    # (running nested inside iex can null out WinUtil's runspace variables)
-    $winutilPath = Join-Path $env:TEMP "winutil-runner.ps1"
-    $winutilScript | Out-File -FilePath $winutilPath -Encoding UTF8 -Force
-
-    Write-Host "✓ Download successful, launching WinUtil in a fresh process..." -ForegroundColor Green
-    Write-Host ""
-
-    # Run WinUtil in a separate elevated PowerShell process (not nested in iex)
-    $proc = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList @(
-        "-NoProfile",
-        "-ExecutionPolicy", "Bypass",
-        "-File", "`"$winutilPath`"",
-        "-Config", "`"$configPath`"",
-        "-Run"
-    )
-
-    Write-Host ""
-    if ($proc.ExitCode -eq 0) {
-        Write-Host "✓ Chris Titus WinUtil completed successfully" -ForegroundColor Green
-    } else {
-        Write-Host "⚠ WinUtil exited with code $($proc.ExitCode)" -ForegroundColor Yellow
-    }
-    Write-Host ""
-
-    Remove-Item $configPath -Force -ErrorAction SilentlyContinue
-    Remove-Item $winutilPath -Force -ErrorAction SilentlyContinue
-} catch {
-    Write-Host "✗ WinUtil failed:" -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    Write-Host ""
-    Read-Host "Press Enter to close (setup cannot continue without WinUtil)"
-    exit 1
-}
+Write-Host ""
+Write-Host "✓ WinUtil window closed - continuing setup" -ForegroundColor Green
+Write-Host ""
 
 Write-Host "Step 2: Downloading custom setup script..." -ForegroundColor Yellow
 
