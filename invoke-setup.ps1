@@ -49,6 +49,8 @@ try {
 
 if (-not $winutilSuccess) {
     Write-Host "Setup stopped - WinUtil must complete successfully before proceeding." -ForegroundColor Red
+    Write-Host ""
+    Read-Host "Press Enter to close this window"
     exit 1
 }
 
@@ -65,8 +67,11 @@ try {
     Invoke-Expression $setupScript
 }
 catch {
+    Write-Host ""
     Write-Host "ERROR: Failed to download or execute setup script" -ForegroundColor Red
     Write-Host "URL: $gitHubRawUrl" -ForegroundColor Red
     Write-Host "Error: $_" -ForegroundColor Red
+    Write-Host ""
+    Read-Host "Press Enter to close this window"
     exit 1
 }
