@@ -198,6 +198,17 @@ function Write-Log {
 
 Write-Log "Post-update fixup script started"
 
+# Function to check if app is installed
+function Test-AppInstalled {
+    param([string]$AppId)
+    try {
+        $installed = winget list --id $AppId 2>&1 | Select-String $AppId
+        return $null -ne $installed
+    } catch {
+        return $false
+    }
+}
+
 # STEP 1: Install core applications
 $appsToReinstall = @(
     @{ Id = "9P7BP5VNWKX5"; Name = "Quick Assist" },
@@ -209,9 +220,13 @@ $appsToReinstall = @(
 
 foreach ($app in $appsToReinstall) {
     try {
-        Write-Log "Installing $($app.Name)..."
-        winget install --id $app.Id --source msstore --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-        Write-Log "$($app.Name) installed successfully" "Success"
+        if (Test-AppInstalled $app.Id) {
+            Write-Log "$($app.Name) is already installed - skipping" "Info"
+        } else {
+            Write-Log "Installing $($app.Name)..."
+            winget install --id $app.Id --source msstore --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+            Write-Log "$($app.Name) installed successfully" "Success"
+        }
     } catch {
         Write-Log "$($app.Name) installation skipped or failed" "Warning"
     }
@@ -219,11 +234,15 @@ foreach ($app in $appsToReinstall) {
 
 # STEP 2: Ensure Microsoft 365 Apps
 try {
-    Write-Log "Checking Microsoft 365 Apps..."
-    winget install --id Microsoft.Office --exact --silent --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-    Write-Log "Microsoft 365 Apps ready" "Success"
+    if (Test-AppInstalled "Microsoft.Office") {
+        Write-Log "Microsoft 365 Apps is already installed" "Info"
+    } else {
+        Write-Log "Installing Microsoft 365 Apps..."
+        winget install --id Microsoft.Office --exact --silent --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+        Write-Log "Microsoft 365 Apps installed successfully" "Success"
+    }
 } catch {
-    Write-Log "Microsoft 365 Apps check skipped or failed" "Warning"
+    Write-Log "Microsoft 365 Apps check failed" "Warning"
 }
 
 # STEP 3: Install third-party essentials
@@ -234,9 +253,13 @@ $thirdPartyApps = @(
 
 foreach ($app in $thirdPartyApps) {
     try {
-        Write-Log "Installing $app..."
-        winget install --id $app --source winget --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-        Write-Log "$app installed successfully" "Success"
+        if (Test-AppInstalled $app) {
+            Write-Log "$app is already installed - skipping" "Info"
+        } else {
+            Write-Log "Installing $app..."
+            winget install --id $app --source winget --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+            Write-Log "$app installed successfully" "Success"
+        }
     } catch {
         Write-Log "$app installation skipped or failed" "Warning"
     }
