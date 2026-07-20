@@ -1,20 +1,197 @@
-# Workstation Provisioning Automation
+# Windows Setup & Optimization Automation
 
-An automated setup tool designed to streamline system configuration and software installation on newly formatted computers. This script minimizes manual deployment time, reduces human error, and ensures a standardized baseline environment across all deployed workstations.
+Comprehensive automated setup and optimization for fresh Windows 10/11 installations. Configures system settings, debloats built-in apps, installs essential software, and sets up automatic post-update maintenance.
 
-## 🚀 Features
-* **Automated Environment Setup:** Configures essential OS settings and network parameters post-installation.
-* **Batch Software Deployment:** Installs required applications and dependencies without manual intervention.
-* **Standardized Compliance:** Ensures all newly formatted machines meet operational baseline standards before being handed over to end-users.
-* **Lightweight Execution:** Minimal overhead with clean, auditable logging.
+## Quick Start
 
-## 📋 Prerequisites
-* Target OS: [e.g., Windows 10/11 Enterprise / Ubuntu 22.04]
-* Execution Privileges: Administrator / Root access required
-* [Optional] Network access for downloading remote packages
+Run this single command in PowerShell on any computer:
 
-## 🛠️ Usage
+```powershell
+irm https://raw.githubusercontent.com/xnostra/newlyformatscriptoncomputers/main/invoke-setup.ps1 | iex
+```
 
-1. Clone the repository to the newly formatted machine:
-   ```bash
-   git clone [https://github.com/xnostra/newlyformatscriptoncomputers.git](https://github.com/xnostra/newlyformatscriptoncomputers.git)
+That's it—auto-downloads, auto-elevates to admin, and completes full system setup.
+
+## Features
+
+✅ **System Configuration**
+- Disables User Account Control (UAC)
+- Configures Volume Shadow Copy (VSS) storage limits
+- Sets regional settings (timezone, date format, paper size)
+- Applies power management profiles (laptop vs. desktop detection)
+
+✅ **Application Management**
+- Applies WinUtil "Standard" preset for system debloating
+- Selectively reinstalls useful Microsoft Store apps (Teams, Paint, Sticky Notes, etc.)
+- Installs Microsoft 365 Apps
+- Deploys third-party essentials (Google Chrome, WinRAR)
+- Uses `winget` for reliable package management
+
+✅ **Delivery & Updates**
+- Forces Delivery Optimization to LAN-only mode
+- Registers automatic post-update fixup task
+- Logs all operations to file
+
+✅ **Optional Entra ID Integration**
+- Prompts for Microsoft Entra ID enrollment (can be skipped)
+- Integrates with work/school accounts
+
+## Prerequisites
+
+- Windows 10/11 (any edition)
+- Administrator privileges (script auto-elevates)
+- Internet connection (for downloading packages)
+- PowerShell 5.1+ (built-in)
+
+## Deployment Options
+
+**Option 1: One-Liner** (Recommended)
+
+```powershell
+irm https://raw.githubusercontent.com/xnostra/newlyformatscriptoncomputers/main/invoke-setup.ps1 | iex
+```
+
+**Option 2: Local Execution**
+
+1. Download `setup.ps1`
+2. Open PowerShell as Administrator
+3. Run:
+   ```powershell
+   .\setup.ps1
+   ```
+
+**Option 3: With Parameters**
+
+Skip Entra ID prompt:
+```powershell
+.\setup.ps1 -SkipEntraPrompt
+```
+
+Custom log path:
+```powershell
+.\setup.ps1 -LogPath "C:\Logs\setup.log"
+```
+
+## What Gets Installed
+
+| Software | Purpose | Source |
+|----------|---------|--------|
+| Microsoft 365 Apps | Productivity suite | WinGet |
+| Google Chrome | Web browser | WinGet |
+| WinRAR | File compression | WinGet |
+| Quick Assist | Remote support | Microsoft Store |
+| Microsoft Teams | Communication | Microsoft Store |
+| Paint | Image editing | Microsoft Store |
+| Sticky Notes | Note taking | Microsoft Store |
+| Sound Recorder | Audio capture | Microsoft Store |
+
+## Configuration Details
+
+**Regional Settings**
+- Timezone: Arab Standard Time (UTC+03:00) - Qatar
+- Date Format: dd-MM-yyyy
+- Paper Size: A4
+
+**Power Settings**
+
+Laptop:
+- Display timeout (AC): 60 minutes
+- Sleep timeout (AC): Never
+- Display timeout (Battery): 15 minutes
+- Sleep timeout (Battery): 30 minutes
+
+Desktop:
+- Display timeout (AC): 60 minutes
+- Sleep timeout (AC): Never
+
+**Auto-Maintenance**
+- Post-update fixup task runs automatically after Windows Update
+- Logs: `C:\ProgramData\WinUtilSetup\setup.log` and `post-update.log`
+
+## Logging
+
+All operations logged to:
+```
+C:\ProgramData\WinUtilSetup\setup.log
+C:\ProgramData\WinUtilSetup\post-update.log
+```
+
+View logs:
+```powershell
+Get-Content "C:\ProgramData\WinUtilSetup\setup.log" -Tail 50
+```
+
+## Important Notes
+
+⚠️ **Restart Required**
+- UAC disabling requires a system restart to take effect
+
+⚠️ **Network Requirements**
+- `winget` requires internet connectivity
+- Some apps may not install if network is unavailable
+
+⚠️ **Entra ID Enrollment**
+- Optional and interactive
+- Only needed for work/school accounts
+- Can be skipped with `-SkipEntraPrompt` flag
+
+## Customization
+
+Edit `setup.ps1` to modify:
+- Timezone (change `"Arab Standard Time"`)
+- Installed applications (edit app lists)
+- Power settings (adjust timeouts)
+- Regional settings (date format, paper size)
+
+## Troubleshooting
+
+**"Access Denied" Error**
+- Ensure you're running PowerShell as Administrator
+- Or set execution policy: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force`
+
+**Script Downloads But Doesn't Run**
+- Check GitHub URL is correct
+- Verify repository is public
+- Ensure internet connectivity
+
+**WinGet Package Installation Fails**
+- Check Windows Update is installed and up-to-date
+- Some packages require specific Windows editions
+- Manually install via Microsoft Store if needed
+
+**Scheduled Task Not Running**
+- Verify Task Scheduler is enabled
+- Check Windows Update service is running
+- Review Windows Event Viewer > Windows Logs > System for errors
+
+## Version History
+
+**v2.0** (2026-07-20)
+- Complete rewrite with professional error handling
+- Added comprehensive logging
+- Improved power management detection
+- Better app installation resilience
+- Post-update automatic fixup scheduling
+- One-liner launcher support
+
+**v1.0**
+- Initial release
+
+## Support
+
+For issues or questions:
+- Open an issue on GitHub
+- Check logs in `C:\ProgramData\WinUtilSetup\`
+- Review PowerShell error output
+
+## License
+
+Provided as-is. Modify and distribute freely.
+
+---
+
+**One-Liner**: `irm https://raw.githubusercontent.com/xnostra/newlyformatscriptoncomputers/main/invoke-setup.ps1 | iex`
+
+**Repository**: https://github.com/xnostra/newlyformatscriptoncomputers
+
+**Last Updated**: 2026-07-20
