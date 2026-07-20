@@ -122,11 +122,18 @@ try {
     Write-Host "  System Restore Point created" -ForegroundColor Green
 } catch { }
 
-# 12. Disk Cleanup (component cleanup - runs in background)
+# 12. Disk Cleanup - actually run it and WAIT so it completes (the old version fired
+#     it in the background and it never finished / was killed when the script ended).
 try {
-    Start-Process -FilePath "Dism.exe" -ArgumentList "/online","/Cleanup-Image","/StartComponentCleanup","/ResetBase" -WindowStyle Hidden -ErrorAction SilentlyContinue
-    Write-Host "  Disk cleanup started" -ForegroundColor Green
-} catch { }
+    Write-Host "  Running disk cleanup (this can take a few minutes)..." -ForegroundColor Gray
+    # Silent, no-prompt cleanup of all handlers
+    $cm = Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/d","$Env:SystemDrive","/VERYLOWDISK" -Wait -WindowStyle Hidden -PassThru -ErrorAction SilentlyContinue
+    # Reclaim space from superseded Windows components
+    $ds = Start-Process -FilePath "Dism.exe" -ArgumentList "/online","/Cleanup-Image","/StartComponentCleanup" -Wait -WindowStyle Hidden -PassThru -ErrorAction SilentlyContinue
+    Write-Host "  Disk cleanup complete" -ForegroundColor Green
+} catch {
+    Write-Host "  Disk cleanup skipped: $_" -ForegroundColor Yellow
+}
 
 Write-Host ""
 Write-Host "✓ Standard tweaks applied successfully" -ForegroundColor Green

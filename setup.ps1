@@ -48,7 +48,8 @@ param(
 #  CONFIGURATION & CONSTANTS
 # ============================================================
 
-$ErrorActionPreference = "Stop"
+# Continue (not Stop): a single non-critical failure must never abort/crash the whole setup.
+$ErrorActionPreference = "Continue"
 $VerbosePreference = "SilentlyContinue"
 $ProgressPreference = "SilentlyContinue"
 
@@ -102,11 +103,18 @@ function Test-AdminPrivileges {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
     if (-not $isAdmin) {
-        "Admin rights are needed - requesting elevation..." | Write-Log -Level Warning
-        $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -SkipEntraPrompt:$SkipEntraPrompt -LogPath `"$LogPath`""
-        Start-Process powershell.exe -Verb RunAs -ArgumentList $arguments
-        exit 0
+        # $PSCommandPath is empty when this runs via the one-liner (Invoke-Expression).
+        # In that case we can't relaunch by file path - just continue best-effort (the
+        # launcher already elevates), and never call exit (that would close the window).
+        if ($PSCommandPath) {
+            "Admin rights are needed - requesting elevation..." | Write-Log -Level Warning
+            $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -SkipEntraPrompt:$SkipEntraPrompt -LogPath `"$LogPath`""
+            Start-Process powershell.exe -Verb RunAs -ArgumentList $arguments
+            return $false
+        }
+        "Not elevated and cannot auto-relaunch - continuing best-effort (run the one-liner from an admin window if steps fail)." | Write-Log -Level Warning
     }
+    return $true
 }
 
 # ============================================================
@@ -131,7 +139,6 @@ function Disable-UAC {
     }
     catch {
         "Failed to disable UAC: $_" | Write-Log -Level Error
-        throw
     }
 }
 
@@ -161,7 +168,6 @@ function Configure-RegionalSettings {
     }
     catch {
         "Failed to configure regional settings: $_" | Write-Log -Level Error
-        throw
     }
 }
 
@@ -335,7 +341,6 @@ function Register-PostUpdateTask {
     }
     catch {
         "Failed to register scheduled task: $_" | Write-Log -Level Error
-        throw
     }
 }
 
@@ -368,32 +373,39 @@ function Invoke-SetupSequence {
     "========== WINDOWS SETUP & OPTIMIZATION STARTED ==========" | Write-Log -Level Info
     "Log: $LogPath" | Write-Log
 
-    Test-AdminPrivileges
-    Set-LocalExecutionPolicy
-    Initialize-SetupDirectory
+    # Each step is isolated: if one fails it's logged and the rest still run.
+    $steps = @(
+        { if (-not (Test-AdminPrivileges)) { return } },
+        { Set-LocalExecutionPolicy },
+        { Initialize-SetupDirectory },
+        { Disable-UAC },
+        { Configure-VolumeSnapshotService },
+        { Configure-RegionalSettings },
+        { Configure-PowerSettings }
+    )
+    foreach ($step in $steps) {
+        try { & $step } catch { "Step failed (continuing): $_" | Write-Log -Level Error }
+    }
 
-    Disable-UAC
-    Configure-VolumeSnapshotService
-    Configure-RegionalSettings
-    Configure-PowerSettings
+    try {
+        $fixupScript = Create-PostUpdateFixupScript
+        Register-PostUpdateTask -FixupScriptPath $fixupScript
+        "Running post-update fixup script immediately..." | Write-Log
+        & powershell -NoProfile -ExecutionPolicy Bypass -File $fixupScript
+    } catch {
+        "Post-update fixup step failed (continuing): $_" | Write-Log -Level Error
+    }
 
-    $fixupScript = Create-PostUpdateFixupScript
-    Register-PostUpdateTask -FixupScriptPath $fixupScript
-
-    "Running post-update fixup script immediately..." | Write-Log
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $fixupScript
-
-    Prompt-EntraIDConnection
+    try { Prompt-EntraIDConnection } catch { "Entra ID prompt failed (continuing): $_" | Write-Log -Level Error }
 
     "========== SETUP COMPLETE ==========" | Write-Log -Level Success
     "System will be more responsive after restart. Please restart when ready." | Write-Log -Level Warning
 }
 
-# Execute main sequence
+# Execute main sequence - never call exit (this runs inside the one-liner's session)
 try {
     Invoke-SetupSequence
 }
 catch {
-    "SETUP FAILED: $_" | Write-Log -Level Error
-    exit 1
+    "SETUP encountered an error but did not abort: $_" | Write-Log -Level Error
 }
