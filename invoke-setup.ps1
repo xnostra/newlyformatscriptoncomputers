@@ -115,24 +115,22 @@ try {
     Write-Host "  Temp files cleared" -ForegroundColor Green
 } catch { }
 
-# 11. Create Restore Point
+# 11. Create Restore Point (warning is silenced - Windows only allows one per 24h)
 try {
-    Enable-ComputerRestore -Drive $Env:SystemDrive -ErrorAction SilentlyContinue
-    Checkpoint-Computer -Description "Setup Restore Point" -RestorePointType MODIFY_SETTINGS -ErrorAction SilentlyContinue
-    Write-Host "  System Restore Point created" -ForegroundColor Green
+    Enable-ComputerRestore -Drive $Env:SystemDrive -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+    Checkpoint-Computer -Description "Setup Restore Point" -RestorePointType MODIFY_SETTINGS -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+    Write-Host "  System Restore Point checked" -ForegroundColor Green
 } catch { }
 
-# 12. Disk Cleanup - actually run it and WAIT so it completes (the old version fired
-#     it in the background and it never finished / was killed when the script ended).
+# 12. Disk Cleanup - launched DETACHED in the background so it never blocks/pauses the
+#     setup. It runs to completion on its own even after this window closes.
 try {
-    Write-Host "  Running disk cleanup (this can take a few minutes)..." -ForegroundColor Gray
-    # Silent, no-prompt cleanup of all handlers
-    $cm = Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/d","$Env:SystemDrive","/VERYLOWDISK" -Wait -WindowStyle Hidden -PassThru -ErrorAction SilentlyContinue
-    # Reclaim space from superseded Windows components
-    $ds = Start-Process -FilePath "Dism.exe" -ArgumentList "/online","/Cleanup-Image","/StartComponentCleanup" -Wait -WindowStyle Hidden -PassThru -ErrorAction SilentlyContinue
-    Write-Host "  Disk cleanup complete" -ForegroundColor Green
+    $cleanupCmd = "Start-Process cleanmgr.exe -ArgumentList '/d','$Env:SystemDrive','/VERYLOWDISK' -Wait -WindowStyle Hidden; " +
+                  "Start-Process Dism.exe -ArgumentList '/online','/Cleanup-Image','/StartComponentCleanup' -Wait -WindowStyle Hidden"
+    Start-Process powershell.exe -ArgumentList "-NoProfile","-WindowStyle","Hidden","-Command",$cleanupCmd -WindowStyle Hidden | Out-Null
+    Write-Host "  Disk cleanup running in the background (no need to wait)" -ForegroundColor Green
 } catch {
-    Write-Host "  Disk cleanup skipped: $_" -ForegroundColor Yellow
+    Write-Host "  Disk cleanup could not start: $_" -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -161,10 +159,12 @@ $appxToRemove = @(
     "Microsoft.BingSearch"
 )
 
+# Fetch the provisioned-package list ONCE (querying it per-app was the main slowdown)
+$provisioned = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue -Verbose:$false
 foreach ($pkg in $appxToRemove) {
     try {
         Get-AppxPackage -AllUsers -Name $pkg -ErrorAction SilentlyContinue | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue -Verbose:$false 4>$null
-        Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue -Verbose:$false | Where-Object { $_.DisplayName -eq $pkg } | ForEach-Object {
+        $provisioned | Where-Object { $_.DisplayName -eq $pkg } | ForEach-Object {
             Remove-AppxProvisionedPackage -Online -PackageName $_.PackageName -ErrorAction SilentlyContinue -Verbose:$false 4>$null | Out-Null
         }
     } catch { }

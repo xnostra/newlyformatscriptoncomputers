@@ -123,7 +123,8 @@ function Test-AdminPrivileges {
 
 function Set-LocalExecutionPolicy {
     "Setting execution policy to RemoteSigned..." | Write-Log
-    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+    # SilentlyContinue: harmless if a machine policy already forces a broader scope (e.g. Bypass)
+    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction SilentlyContinue
 }
 
 # ============================================================
@@ -205,71 +206,40 @@ function Write-Log {
 
 Write-Log "Post-update fixup script started"
 
-# Function to check if app is installed
-function Test-AppInstalled {
-    param([string]$AppId)
-    try {
-        $installed = winget list --id $AppId 2>&1 | Select-String $AppId
-        return $null -ne $installed
-    } catch {
-        return $false
-    }
-}
+# winget install is idempotent - it detects an existing/latest install and skips fast,
+# so we do NOT run a separate slow "winget list" pre-check. Flags keep it silent + quick.
+$wa = "--silent --disable-interactivity --accept-package-agreements --accept-source-agreements"
 
-# STEP 1: Install core applications
-$appsToReinstall = @(
+# STEP 1: Core Microsoft Store apps
+$storeApps = @(
     @{ Id = "9P7BP5VNWKX5"; Name = "Quick Assist" },
     @{ Id = "9WZDNCRFJ364"; Name = "Microsoft Teams" },
     @{ Id = "9PCFS5B6T72H"; Name = "Paint" },
     @{ Id = "9NBLGGH4QGHW"; Name = "Sticky Notes" },
     @{ Id = "9WZDNCRFHWKN"; Name = "Sound Recorder" }
 )
-
-foreach ($app in $appsToReinstall) {
+foreach ($app in $storeApps) {
     try {
-        if (Test-AppInstalled $app.Id) {
-            Write-Log "$($app.Name) is already installed - skipping" "Info"
-        } else {
-            Write-Log "Installing $($app.Name)..."
-            winget install --id $app.Id --source msstore --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-            Write-Log "$($app.Name) installed successfully" "Success"
-        }
-    } catch {
-        Write-Log "$($app.Name) installation skipped or failed" "Warning"
-    }
+        Write-Log "Installing $($app.Name)..."
+        winget install --id $app.Id --source msstore --silent --disable-interactivity --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+        Write-Log "$($app.Name) ready" "Success"
+    } catch { Write-Log "$($app.Name) skipped or failed" "Warning" }
 }
 
-# STEP 2: Ensure Microsoft 365 Apps
+# STEP 2: Microsoft 365 Apps
 try {
-    if (Test-AppInstalled "Microsoft.Office") {
-        Write-Log "Microsoft 365 Apps is already installed" "Info"
-    } else {
-        Write-Log "Installing Microsoft 365 Apps..."
-        winget install --id Microsoft.Office --exact --silent --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-        Write-Log "Microsoft 365 Apps installed successfully" "Success"
-    }
-} catch {
-    Write-Log "Microsoft 365 Apps check failed" "Warning"
-}
+    Write-Log "Installing Microsoft 365 Apps..."
+    winget install --id Microsoft.Office --exact --silent --disable-interactivity --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+    Write-Log "Microsoft 365 Apps ready" "Success"
+} catch { Write-Log "Microsoft 365 Apps skipped or failed" "Warning" }
 
-# STEP 3: Install third-party essentials
-$thirdPartyApps = @(
-    "RARLab.WinRAR",
-    "Google.Chrome"
-)
-
-foreach ($app in $thirdPartyApps) {
+# STEP 3: Third-party essentials
+foreach ($app in @("RARLab.WinRAR", "Google.Chrome")) {
     try {
-        if (Test-AppInstalled $app) {
-            Write-Log "$app is already installed - skipping" "Info"
-        } else {
-            Write-Log "Installing $app..."
-            winget install --id $app --source winget --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-            Write-Log "$app installed successfully" "Success"
-        }
-    } catch {
-        Write-Log "$app installation skipped or failed" "Warning"
-    }
+        Write-Log "Installing $app..."
+        winget install --id $app --source winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
+        Write-Log "$app ready" "Success"
+    } catch { Write-Log "$app skipped or failed" "Warning" }
 }
 
 # STEP 4: Force Delivery Optimization to LAN-only
