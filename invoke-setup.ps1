@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     This script can be run with:
-    irm https://github.com/YOUR_USERNAME/windows-setup-scripts/raw/main/invoke-setup.ps1 | iex
+    irm https://raw.githubusercontent.com/xnostra/newlyformatscriptoncomputers/main/invoke-setup.ps1 | iex
 
 .NOTES
     Version: 1.0
@@ -13,7 +13,7 @@
     LastModified: 2026-07-20
 
 .LINK
-    https://github.com/YOUR_USERNAME/windows-setup-scripts
+    https://github.com/xnostra/newlyformatscriptoncomputers
 #>
 
 $gitHubRawUrl = "https://raw.githubusercontent.com/xnostra/newlyformatscriptoncomputers/main/setup.ps1"
