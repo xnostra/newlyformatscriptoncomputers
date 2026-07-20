@@ -34,7 +34,7 @@
     LastModified: 2026-07-20
 
 .LINK
-    https://github.com/YOUR_USERNAME/windows-setup-scripts
+    https://github.com/xnostra/newlyformatscriptoncomputers
 
 #>
 

@@ -16,7 +16,7 @@
     https://github.com/YOUR_USERNAME/windows-setup-scripts
 #>
 
-$gitHubRawUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/windows-setup-scripts/main/setup.ps1"
+$gitHubRawUrl = "https://raw.githubusercontent.com/xnostra/newlyformatscriptoncomputers/main/setup.ps1"
 
 Write-Host "Windows Setup & Optimization" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
