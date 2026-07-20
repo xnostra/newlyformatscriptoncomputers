@@ -198,16 +198,7 @@ function Write-Log {
 
 Write-Log "Post-update fixup script started"
 
-# STEP 1: Apply WinUtil "Standard" preset (Chris Titus Tech)
-try {
-    Write-Log "Applying WinUtil Standard preset..."
-    & ([ScriptBlock]::Create((Invoke-RestMethod -Uri "https://christitus.com/win" -UseBasicParsing))) -Preset Standard
-    Write-Log "WinUtil preset applied successfully" "Success"
-} catch {
-    Write-Log "WinUtil preset could not be applied: $_" "Warning"
-}
-
-# STEP 2: Reinstall useful apps that debloat removes
+# STEP 1: Install core applications
 $appsToReinstall = @(
     @{ Id = "9P7BP5VNWKX5"; Name = "Quick Assist" },
     @{ Id = "9WZDNCRFJ364"; Name = "Microsoft Teams" },
@@ -226,7 +217,7 @@ foreach ($app in $appsToReinstall) {
     }
 }
 
-# STEP 3: Ensure Microsoft 365 Apps
+# STEP 2: Ensure Microsoft 365 Apps
 try {
     Write-Log "Checking Microsoft 365 Apps..."
     winget install --id Microsoft.Office --exact --silent --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
@@ -235,7 +226,7 @@ try {
     Write-Log "Microsoft 365 Apps check skipped or failed" "Warning"
 }
 
-# STEP 4: Install third-party essentials
+# STEP 3: Install third-party essentials
 $thirdPartyApps = @(
     "RARLab.WinRAR",
     "Google.Chrome"
@@ -251,7 +242,7 @@ foreach ($app in $thirdPartyApps) {
     }
 }
 
-# STEP 5: Force Delivery Optimization to LAN-only
+# STEP 4: Force Delivery Optimization to LAN-only
 try {
     Write-Log "Configuring Delivery Optimization..."
     New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization" -Force -ErrorAction SilentlyContinue | Out-Null
