@@ -22,40 +22,41 @@ Write-Host "Windows Setup & Optimization" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
-# STEP 1: Run Chris Titus WinUtil Standard Preset
-Write-Host "Step 1: Running Chris Titus WinUtil Standard Preset..." -ForegroundColor Yellow
-Write-Host "(This will apply system debloating and optimizations)" -ForegroundColor Gray
+Write-Host "Windows Setup & Optimization" -ForegroundColor Cyan
+Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
-$winutilSuccess = $false
+# STEP 1: Run Chris Titus WinUtil Standard Preset (MUST complete first)
+Write-Host "Step 1: Chris Titus WinUtil Standard Preset" -ForegroundColor Yellow
+Write-Host "(System debloating and optimization)" -ForegroundColor Gray
+Write-Host ""
+
 try {
-    Write-Host "Downloading WinUtil script..." -ForegroundColor Cyan
+    Write-Host "Downloading WinUtil from https://christitus.com/win..." -ForegroundColor Cyan
     $winutilScript = Invoke-RestMethod -Uri "https://christitus.com/win" -UseBasicParsing -ErrorAction Stop
 
-    if ($winutilScript) {
-        Write-Host "Executing WinUtil Standard preset (this may take a few minutes)..." -ForegroundColor Cyan
-        & ([ScriptBlock]::Create($winutilScript)) -Preset Standard
-        $winutilSuccess = $true
-        Write-Host ""
-        Write-Host "✓ Chris Titus WinUtil completed successfully" -ForegroundColor Green
-    } else {
-        Write-Host "✗ WinUtil script download failed (empty response)" -ForegroundColor Red
+    if ([string]::IsNullOrEmpty($winutilScript)) {
+        throw "WinUtil script is empty"
     }
-} catch {
-    Write-Host ""
-    Write-Host "✗ WinUtil failed to complete: $_" -ForegroundColor Red
-    Write-Host ""
-}
 
-if (-not $winutilSuccess) {
-    Write-Host "Setup stopped - WinUtil must complete successfully before proceeding." -ForegroundColor Red
+    Write-Host "✓ Download successful, executing preset..." -ForegroundColor Green
     Write-Host ""
-    Read-Host "Press Enter to close this window"
+
+    # Run WinUtil with Standard preset
+    & ([ScriptBlock]::Create($winutilScript)) -Preset Standard
+
+    Write-Host ""
+    Write-Host "✓ Chris Titus WinUtil completed successfully" -ForegroundColor Green
+    Write-Host ""
+} catch {
+    Write-Host "✗ WinUtil failed:" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host ""
+    Read-Host "Press Enter to close (setup cannot continue without WinUtil)"
     exit 1
 }
 
-Write-Host ""
-Write-Host "Step 2: Downloading and running custom setup script..." -ForegroundColor Yellow
+Write-Host "Step 2: Downloading custom setup script..." -ForegroundColor Yellow
 
 try {
     $setupScript = Invoke-RestMethod -Uri $gitHubRawUrl -ErrorAction Stop
