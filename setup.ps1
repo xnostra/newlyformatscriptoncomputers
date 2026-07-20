@@ -49,7 +49,8 @@ param(
 # ============================================================
 
 $ErrorActionPreference = "Stop"
-$VerbosePreference = "Continue"
+$VerbosePreference = "SilentlyContinue"
+$ProgressPreference = "SilentlyContinue"
 
 $setupConfig = @{
     InstallDir          = "C:\ProgramData\WinUtilSetup"

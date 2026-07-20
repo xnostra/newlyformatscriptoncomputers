@@ -18,6 +18,10 @@
 
 $gitHubRawUrl = "https://raw.githubusercontent.com/xnostra/newlyformatscriptoncomputers/main/setup.ps1"
 
+# Keep output clean - suppress verbose module/cmdlet noise
+$VerbosePreference = "SilentlyContinue"
+$ProgressPreference = "SilentlyContinue"
+
 Write-Host "Windows Setup & Optimization" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
@@ -152,9 +156,9 @@ $appxToRemove = @(
 
 foreach ($pkg in $appxToRemove) {
     try {
-        Get-AppxPackage -AllUsers -Name $pkg -ErrorAction SilentlyContinue | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
-        Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq $pkg } | ForEach-Object {
-            Remove-AppxProvisionedPackage -Online -PackageName $_.PackageName -ErrorAction SilentlyContinue | Out-Null
+        Get-AppxPackage -AllUsers -Name $pkg -ErrorAction SilentlyContinue | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue -Verbose:$false 4>$null
+        Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue -Verbose:$false | Where-Object { $_.DisplayName -eq $pkg } | ForEach-Object {
+            Remove-AppxProvisionedPackage -Online -PackageName $_.PackageName -ErrorAction SilentlyContinue -Verbose:$false 4>$null | Out-Null
         }
     } catch { }
 }
