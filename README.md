@@ -199,12 +199,10 @@ For issues or questions:
 
 ## License
 
-Provided as-is. Modify and distribute freely.
+MIT — see [`LICENSE`](LICENSE).
 
 ---
 
 **One-Liner**: `irm https://raw.githubusercontent.com/xnostra/newlyformatscriptoncomputers/main/invoke-setup.ps1 | iex`
 
 **Repository**: https://github.com/xnostra/newlyformatscriptoncomputers
-
-**Last Updated**: 2026-07-20
