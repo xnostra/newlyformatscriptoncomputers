@@ -22,10 +22,6 @@ Write-Host "Windows Setup & Optimization" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
-Write-Host "Windows Setup & Optimization" -ForegroundColor Cyan
-Write-Host "======================================" -ForegroundColor Cyan
-Write-Host ""
-
 # STEP 1: Run Chris Titus WinUtil Standard Preset (MUST complete first)
 Write-Host "Step 1: Chris Titus WinUtil Standard Preset" -ForegroundColor Yellow
 Write-Host "(System debloating and optimization)" -ForegroundColor Gray
