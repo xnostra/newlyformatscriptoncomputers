@@ -35,8 +35,7 @@ try {
         throw "WinUtil script is empty"
     }
 
-    # Build a config JSON matching the Standard preset (the -Config flag is the
-    # supported way to run headless; -Preset requires GUI buttons and errors via iex)
+    # Build a config JSON matching the Standard preset
     $winutilConfig = @{
         WPFTweaks = @(
             "WPFTweaksActivity",
@@ -57,17 +56,33 @@ try {
     $configPath = Join-Path $env:TEMP "winutil-standard-config.json"
     $winutilConfig | ConvertTo-Json -Depth 5 | Out-File -FilePath $configPath -Encoding UTF8 -Force
 
-    Write-Host "✓ Download successful, applying Standard tweaks via config..." -ForegroundColor Green
+    # Save WinUtil script to a temp file so it runs at true top-level scope
+    # (running nested inside iex can null out WinUtil's runspace variables)
+    $winutilPath = Join-Path $env:TEMP "winutil-runner.ps1"
+    $winutilScript | Out-File -FilePath $winutilPath -Encoding UTF8 -Force
+
+    Write-Host "✓ Download successful, launching WinUtil in a fresh process..." -ForegroundColor Green
     Write-Host ""
 
-    # Run WinUtil with the config file (headless-safe)
-    & ([ScriptBlock]::Create($winutilScript)) -Config $configPath -Run
+    # Run WinUtil in a separate elevated PowerShell process (not nested in iex)
+    $proc = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "`"$winutilPath`"",
+        "-Config", "`"$configPath`"",
+        "-Run"
+    )
 
     Write-Host ""
-    Write-Host "✓ Chris Titus WinUtil completed successfully" -ForegroundColor Green
+    if ($proc.ExitCode -eq 0) {
+        Write-Host "✓ Chris Titus WinUtil completed successfully" -ForegroundColor Green
+    } else {
+        Write-Host "⚠ WinUtil exited with code $($proc.ExitCode)" -ForegroundColor Yellow
+    }
     Write-Host ""
 
     Remove-Item $configPath -Force -ErrorAction SilentlyContinue
+    Remove-Item $winutilPath -Force -ErrorAction SilentlyContinue
 } catch {
     Write-Host "✗ WinUtil failed:" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
