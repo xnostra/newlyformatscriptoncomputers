@@ -20,11 +20,20 @@ That's it—auto-downloads, auto-elevates to admin, and completes full system se
 - Sets regional settings (timezone, date format, paper size)
 - Applies power management profiles (laptop vs. desktop detection)
 
+✅ **System Tweaks (WinUtil "Standard" parity)**
+- Applies the same 12 tweaks as WinUtil's Standard preset, implemented natively (no external dependency, no GUI required)
+- Disables activity feed, consumer features, WPBT, location tracking, and telemetry
+- Sets non-essential services to manual/disabled
+- Creates a system restore point and clears temp files before changes
+
+✅ **Debloat**
+- Removes 14 default bloatware apps (Feedback Hub, Get Help, Office Hub, Clipchamp, Alarms, To Do, Solitaire, Power Automate, Dev Home, Weather, Widgets, News, Copilot, Bing Search)
+- Keeps Calculator and other useful built-ins
+
 ✅ **Application Management**
-- Applies WinUtil "Standard" preset for system debloating
-- Selectively reinstalls useful Microsoft Store apps (Teams, Paint, Sticky Notes, etc.)
-- Installs Microsoft 365 Apps
-- Deploys third-party essentials (Google Chrome, WinRAR)
+- Installs curated Microsoft Store apps (Quick Assist, Teams, Paint, Sticky Notes, Sound Recorder)
+- Installs Microsoft 365 Apps, Google Chrome, and WinRAR
+- Checks if each app is already installed and skips it if so (no redundant reinstalls)
 - Uses `winget` for reliable package management
 
 ✅ **Delivery & Updates**
@@ -166,11 +175,15 @@ Edit `setup.ps1` to modify:
 
 ## Version History
 
+**v2.1** (2026-07-20)
+- Replaced WinUtil dependency with native Standard-preset tweaks (avoids WinUtil's headless crash)
+- Added debloat step (removes 14 default apps, keeps Calculator)
+- Apps now skipped if already installed (efficiency)
+- Suppressed verbose output for clean logs
+
 **v2.0** (2026-07-20)
-- Complete rewrite with professional error handling
-- Added comprehensive logging
-- Improved power management detection
-- Better app installation resilience
+- Complete rewrite with professional error handling and logging
+- Improved power management detection (laptop vs. desktop)
 - Post-update automatic fixup scheduling
 - One-liner launcher support
 
